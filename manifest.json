@@ -4,14 +4,10 @@
   "description": "Your personal AI art and video studio. Generate stunning, unique wallpapers, videos, and more from text prompts with Vivid Forge.",
   "icons": [
     {
-      "src": "/public/icons/icon-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/public/icons/icon-512x512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "data:image/svg+xml,%3csvg width='64' height='64' viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='64' height='64' rx='12' fill='url(%23grad)'/%3e%3cpath d='M32 16L36.5 27.5L48 32L36.5 36.5L32 48L27.5 36.5L16 32L27.5 27.5L32 16Z' fill='white'/%3e%3cdefs%3e%3clinearGradient id='grad' x1='0' y1='0' x2='64' y2='64' gradientUnits='userSpaceOnUse'%3e%3cstop stop-color='%23A855F7'/%3e%3cstop offset='1' stop-color='%23EC4899'/%3e%3c/linearGradient%3e%3c/defs%3e%3c/svg%3e",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
     }
   ],
   "start_url": "/",

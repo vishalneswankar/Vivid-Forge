@@ -3,11 +3,13 @@
 import { GoogleGenAI } from "@google/genai";
 import type { Wallpaper, SourceImage } from '../types';
 
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable is not set.");
-}
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAi = () => {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        throw new Error("AI Service is not configured. The API_KEY environment variable is missing. Please configure it in your deployment settings.");
+    }
+    return new GoogleGenAI({ apiKey });
+};
 
 export async function generateWallpapers(
     prompt: string, 
@@ -16,6 +18,7 @@ export async function generateWallpapers(
     negativePrompt: string,
     sourceImage?: SourceImage | null
 ): Promise<Wallpaper[]> {
+    const ai = getAi();
     try {
         const basePrompt = `A stunning, ultra-high-resolution wallpaper.`;
         
@@ -24,7 +27,6 @@ export async function generateWallpapers(
         if (negativePrompt.trim()) {
             fullPrompt += `. Do not include the following: ${negativePrompt}.`;
         }
-
 
         const requestPayload: any = {
             model: 'imagen-3.0-generate-002',
@@ -79,6 +81,7 @@ export async function generateVideo(
     sourceImage: SourceImage | null,
     seed?: number
 ) {
+    const ai = getAi();
     try {
         const requestPayload: any = {
             model: 'veo-2.0-generate-001',
@@ -109,6 +112,7 @@ export async function generateVideo(
 }
 
 export async function getVideoOperationStatus(operation: any) {
+    const ai = getAi();
     try {
         const updatedOperation = await ai.operations.getVideosOperation({ operation: operation });
         return updatedOperation;
