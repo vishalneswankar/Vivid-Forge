@@ -1,0 +1,7 @@
+{
+  "name": "AI Wallpaper Maker",
+  "description": "An AI-powered application that generates stunning, unique wallpapers for your devices based on your text prompts. Download, save, and manage your favorite creations.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
