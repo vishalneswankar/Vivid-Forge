@@ -1,22 +1,44 @@
 /**
  * This file centralizes configuration variables for the application.
- * It reads environment variables and provides boolean flags to easily check
- * for feature availability.
+ * It reads keys from localStorage for local development, and falls back to 
+ * environment variables for production deployments. This provides an easy way
+ * to configure the app via the Settings UI without needing a .env file.
  */
 
-// We read the Google Client ID from environment variables.
-// In a real-world build setup (like Vite or Create React App), this would be
-// `import.meta.env.VITE_GOOGLE_CLIENT_ID` or `process.env.REACT_APP_GOOGLE_CLIENT_ID`.
-// For this environment, we'll assume `process.env.GOOGLE_CLIENT_ID` is made available.
-export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const CONFIG_STORAGE_KEY = 'vivid-forge-config';
 
-// A flag to check anywhere in the app if Google Authentication is configured and available.
-export const isGoogleAuthAvailable = !!GOOGLE_CLIENT_ID;
+interface AppConfig {
+    apiKey: string;
+    googleClientId: string;
+    googleAdsenseClientId: string;
+    googleAdsenseInterstitialAdUnitId: string;
+}
 
-// Google AdSense Configuration
-// IMPORTANT: Replace with your own AdSense Client ID and Ad Unit ID by setting environment variables.
-export const GOOGLE_ADSENSE_CLIENT_ID = process.env.GOOGLE_ADSENSE_CLIENT_ID; // e.g., 'ca-pub-1234567890123456'
-export const GOOGLE_ADSENSE_INTERSTITIAL_AD_UNIT_ID = process.env.GOOGLE_ADSENSE_INTERSTITIAL_AD_UNIT_ID; // e.g., '/6355419/Travel/Europe/France/Paris' or a numeric ID
+// Function to get the current config from localStorage or env vars
+export const getConfig = (): AppConfig => {
+    const fromLocalStorage = localStorage.getItem(CONFIG_STORAGE_KEY);
+    const localConfig: Partial<AppConfig> = fromLocalStorage ? JSON.parse(fromLocalStorage) : {};
 
-// A flag to check if AdSense is configured and available.
-export const isGoogleAdSenseAvailable = !!GOOGLE_ADSENSE_CLIENT_ID && !!GOOGLE_ADSENSE_INTERSTITIAL_AD_UNIT_ID;
+    // For each key, use the value from localStorage, or fall back to the environment variable.
+    return {
+        apiKey: localConfig.apiKey || process.env.API_KEY || '',
+        googleClientId: localConfig.googleClientId || process.env.GOOGLE_CLIENT_ID || '',
+        googleAdsenseClientId: localConfig.googleAdsenseClientId || process.env.GOOGLE_ADSENSE_CLIENT_ID || '',
+        googleAdsenseInterstitialAdUnitId: localConfig.googleAdsenseInterstitialAdUnitId || process.env.GOOGLE_ADSENSE_INTERSTITIAL_AD_UNIT_ID || '',
+    };
+};
+
+// Function to save config to localStorage
+export const saveConfig = (newConfig: Partial<AppConfig>) => {
+    const currentConfig = getConfig();
+    const mergedConfig = { ...currentConfig, ...newConfig };
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(mergedConfig));
+    // Dispatch a custom event to notify the app that the configuration has changed.
+    // This allows components like the AuthProvider to re-initialize if keys are added.
+    window.dispatchEvent(new Event('config-updated'));
+};
+
+// Functions to check if features are configured and available.
+export const isGoogleAuthAvailable = () => !!getConfig().googleClientId;
+export const isGoogleAdSenseAvailable = () => !!getConfig().googleAdsenseClientId && !!getConfig().googleAdsenseInterstitialAdUnitId;
+export const isAiServiceAvailable = () => !!getConfig().apiKey;

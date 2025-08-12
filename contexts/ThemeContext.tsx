@@ -17,6 +17,15 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const root = window.document.documentElement;
     root.classList.remove(theme === 'dark' ? 'light' : 'dark');
     root.classList.add(theme);
+    
+    // Update Google Sign-In button theme
+     const googleButtonIframe = document.querySelector('iframe[src^="https://accounts.google.com/gsi/button"]');
+      if (googleButtonIframe) {
+          const newSrc = new URL(googleButtonIframe.getAttribute('src') as string);
+          newSrc.searchParams.set('theme', theme === 'dark' ? 'filled_black' : 'outline');
+          (googleButtonIframe as HTMLIFrameElement).src = newSrc.toString();
+      }
+
   }, [theme]);
 
   const toggleTheme = () => {

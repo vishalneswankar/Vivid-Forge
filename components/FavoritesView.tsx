@@ -27,7 +27,7 @@ export const FavoritesView = ({ favorites, onToggleFavorite, onSetWallpaper }: F
             <p>Create images and videos, and save your favorites!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {favorites.slice().reverse().map((item) => {
               if (item.type === 'image') {
                 return (

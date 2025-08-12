@@ -4,6 +4,7 @@ import type { View } from '../types';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { HeartIcon } from './icons/HeartIcon';
 import { VideoIcon } from './icons/VideoIcon';
+import { GearIcon } from './icons/GearIcon';
 
 interface NavigationProps {
   currentView: View;
@@ -58,6 +59,13 @@ export const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
             onNavigate={onNavigate}
             icon={<HeartIcon filled={currentView === 'favorites'} className={currentView === 'favorites' ? 'w-7 h-7 text-purple-600 dark:text-purple-400' : 'w-6 h-6'} />}
             label="Collection"
+        />
+        <NavButton
+            targetView="settings"
+            currentView={currentView}
+            onNavigate={onNavigate}
+            icon={<GearIcon className={currentView === 'settings' ? 'w-7 h-7' : 'w-6 h-6'} />}
+            label="Settings"
         />
       </nav>
     </footer>

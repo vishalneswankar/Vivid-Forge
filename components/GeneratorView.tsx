@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { generateWallpapers } from '../services/geminiService';
-import type { Wallpaper, SourceImage } from '../types';
+import type { Wallpaper, SourceImage, View } from '../types';
 import { Loader } from './Loader';
 import { WallpaperCard } from './WallpaperCard';
 import { MagicWandIcon } from './icons/MagicWandIcon';
@@ -61,9 +61,36 @@ interface GeneratorViewProps {
   favorites: Wallpaper[];
   onToggleFavorite: (wallpaper: Omit<Wallpaper, 'type'>) => void;
   onSetWallpaper: (wallpaper: Omit<Wallpaper, 'type'>) => void;
+  onNavigate: (view: View) => void;
 }
 
-export const GeneratorView = ({ favorites, onToggleFavorite, onSetWallpaper }: GeneratorViewProps) => {
+const ApiKeyError = ({ onNavigate }: { onNavigate: (view: View) => void }) => (
+    <div className="text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/50 p-6 rounded-xl text-center max-w-md shadow-lg border border-red-200 dark:border-red-800">
+        <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Configuration Needed</h3>
+        <p className="text-sm text-gray-800 dark:text-gray-300 mb-4">
+            The AI service requires a Google AI API key. Please add it on the settings page to continue.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button 
+              onClick={() => onNavigate('settings')}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-purple-600 rounded-xl hover:bg-purple-700 transition-colors"
+          >
+              Go to Settings
+          </button>
+          <a 
+              href="https://aistudio.google.com/app/apikey" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+              Get an API Key
+          </a>
+        </div>
+    </div>
+);
+
+
+export const GeneratorView = ({ favorites, onToggleFavorite, onSetWallpaper, onNavigate }: GeneratorViewProps) => {
   const [prompt, setPrompt] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState(STYLES[0]);
@@ -284,7 +311,11 @@ export const GeneratorView = ({ favorites, onToggleFavorite, onSetWallpaper }: G
 
       <div className="w-full flex-grow flex items-center justify-center p-4">
         {isLoading && <Loader />}
-        {error && <div className="text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/50 p-4 rounded-xl text-center max-w-md">{error}</div>}
+        {error && (
+            error.includes("AI Service is not configured") 
+            ? <ApiKeyError onNavigate={onNavigate} /> 
+            : <div className="text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/50 p-4 rounded-xl text-center max-w-md">{error}</div>
+        )}
         
         {!isLoading && !error && generatedWallpapers.length > 0 && (
           <div className="w-full max-w-7xl mx-auto">

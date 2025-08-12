@@ -5,6 +5,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { GeneratorView } from './components/GeneratorView';
 import { FavoritesView } from './components/FavoritesView';
 import { VideoView } from './components/VideoView';
+import { SettingsView } from './components/SettingsView';
 import { useTheme } from './contexts/ThemeContext';
 import { SunIcon } from './components/icons/SunIcon';
 import { MoonIcon } from './components/icons/MoonIcon';
@@ -12,6 +13,9 @@ import { BackgroundSlideshow } from './components/BackgroundSlideshow';
 import { SetWallpaperModal } from './components/SetWallpaperModal';
 import { AppIcon } from './components/icons/AppIcon';
 import { Navigation } from './components/Navigation';
+import { useAuth } from './contexts/AuthContext';
+import { LoginButton } from './components/LoginButton';
+import { UserMenu } from './components/UserMenu';
 
 
 const ThemeToggle = () => {
@@ -33,6 +37,8 @@ const App = () => {
   const storageKey = 'creative-suite-favorites';
   const [favorites, setFavorites] = useLocalStorage<FavoriteItem[]>(storageKey, []);
   const [wallpaperToSet, setWallpaperToSet] = useState<Wallpaper | null>(null);
+  const { user } = useAuth();
+
 
   const handleToggleFavorite = useCallback((item: FavoriteItem) => {
     setFavorites(prev => {
@@ -64,7 +70,7 @@ const App = () => {
   return (
     <>
       <BackgroundSlideshow />
-      <div className="flex flex-col h-screen max-h-screen w-full max-w-5xl mx-auto bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg text-gray-900 dark:text-white font-sans transition-colors duration-300">
+      <div className="flex flex-col h-screen max-h-screen w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg text-gray-900 dark:text-white font-sans transition-colors duration-300">
         <header className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-800/50 shrink-0">
           <div className="flex items-center gap-3">
             <AppIcon className="w-8 h-8" />
@@ -72,15 +78,17 @@ const App = () => {
               Vivid Forge
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            { user ? <UserMenu /> : <LoginButton /> }
             <ThemeToggle />
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto flex flex-col">
-          {view === 'generator' && <GeneratorView favorites={imageFavorites} onToggleFavorite={handleToggleWallpaperFromGenerator} onSetWallpaper={handleOpenSetWallpaperModal} />}
-          {view === 'video' && <VideoView favorites={videoFavorites} onToggleFavorite={handleToggleFavorite as (video: Video) => void} />}
+          {view === 'generator' && <GeneratorView favorites={imageFavorites} onToggleFavorite={handleToggleWallpaperFromGenerator} onSetWallpaper={handleOpenSetWallpaperModal} onNavigate={setView} />}
+          {view === 'video' && <VideoView favorites={videoFavorites} onToggleFavorite={handleToggleFavorite as (video: Video) => void} onNavigate={setView} />}
           {view === 'favorites' && <FavoritesView favorites={favorites} onToggleFavorite={handleToggleFavorite} onSetWallpaper={handleOpenSetWallpaperModal} />}
+          {view === 'settings' && <SettingsView />}
         </main>
         
         <Navigation currentView={view} onNavigate={setView} />

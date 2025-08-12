@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { generateVideo, getVideoOperationStatus } from '../services/geminiService';
-import type { SourceImage, Video } from '../types';
+import type { SourceImage, Video, View } from '../types';
 import { UploadIcon } from './icons/UploadIcon';
 import { CameraIcon } from './icons/CameraIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
@@ -10,6 +10,7 @@ import { CameraModal } from './CameraModal';
 import { VideoIcon } from './icons/VideoIcon';
 import { GeneratedVideoCard } from './GeneratedVideoCard';
 import { useAd } from '../contexts/AdContext';
+import { getConfig } from '../config';
 
 
 const ASPECT_RATIOS = {
@@ -39,27 +40,51 @@ const PROMPT_SUGGESTIONS = [
 const getFriendlyErrorMessage = (error: unknown): string => {
     if (error instanceof Error) {
         const errorMessage = error.message;
+        
+        if (errorMessage.includes("AI Service is not configured")) {
+            return errorMessage; // Pass it through to be handled by JSX
+        }
 
-        // Check for the specific quota error message from the API
         if (errorMessage.includes('RESOURCE_EXHAUSTED') || errorMessage.includes('exceeded your current quota')) {
             return "You've exceeded your usage quota. Please check your API plan and billing details with Google AI, and try again later.";
         }
-
-        // Try to parse for a cleaner message for other API errors
-        try {
-            const errorObj = JSON.parse(errorMessage);
-            if (errorObj.error && errorObj.error.message) {
-                return `API Error: ${errorObj.error.message}`;
-            }
-        } catch (e) {
-            // Not a JSON error, fall through to return the raw message.
+        
+        if (errorMessage.includes("API key not valid")) {
+             return "Your Google AI API Key is not valid. Please check it in the Settings page.";
         }
 
-        // For other errors, return the message directly.
         return errorMessage;
     }
     return 'An unknown error occurred. Please try again.';
 };
+
+const ApiKeyError = ({ onNavigate }: { onNavigate: (view: View) => void }) => (
+    <div className="w-full max-w-2xl mx-auto my-4">
+        <div className="text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/50 p-6 rounded-xl text-center shadow-lg border border-red-200 dark:border-red-800">
+            <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Configuration Needed</h3>
+            <p className="text-sm text-gray-800 dark:text-gray-300 mb-4">
+                The AI service requires a Google AI API key. Please add it on the settings page to continue.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+                 <button 
+                    onClick={() => onNavigate('settings')}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-purple-600 rounded-xl hover:bg-purple-700 transition-colors"
+                >
+                    Go to Settings
+                </button>
+                <a 
+                    href="https://aistudio.google.com/app/apikey" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                    Get an API Key
+                </a>
+            </div>
+        </div>
+    </div>
+);
+
 
 const VideoLoader = () => {
     const [message, setMessage] = React.useState(loadingMessages[0]);
@@ -88,9 +113,10 @@ const VideoLoader = () => {
 interface VideoViewProps {
     favorites: Video[];
     onToggleFavorite: (video: Video) => void;
+    onNavigate: (view: View) => void;
 }
 
-export const VideoView = ({ favorites, onToggleFavorite }: VideoViewProps) => {
+export const VideoView = ({ favorites, onToggleFavorite, onNavigate }: VideoViewProps) => {
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState<AspectRatioLabel>('Portrait');
   const [seed, setSeed] = useState<string>('');
@@ -137,7 +163,11 @@ export const VideoView = ({ favorites, onToggleFavorite }: VideoViewProps) => {
                         setIsLoading(false);
                         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
                         if (downloadLink) {
-                            const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+                            const { apiKey } = getConfig();
+                            if (!apiKey) {
+                                throw new Error("API Key is missing for video download.");
+                            }
+                            const response = await fetch(`${downloadLink}&key=${apiKey}`);
                             const blob = await response.blob();
                             const url = URL.createObjectURL(blob);
                             
@@ -216,9 +246,11 @@ export const VideoView = ({ favorites, onToggleFavorite }: VideoViewProps) => {
         ) : (
             <div className="w-full flex-grow">
                 {error && (
-                    <div className="w-full max-w-2xl mx-auto my-4">
+                    error.includes("AI Service is not configured") 
+                    ? <ApiKeyError onNavigate={onNavigate} />
+                    : <div className="w-full max-w-2xl mx-auto my-4">
                         <div className="text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/50 p-4 rounded-xl text-center">{error}</div>
-                    </div>
+                      </div>
                 )}
                 
                 {generatedVideos.length > 0 && (

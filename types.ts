@@ -17,7 +17,7 @@ export interface Video {
   seed?: number;
 }
 
-export type View = 'generator' | 'video' | 'favorites';
+export type View = 'generator' | 'video' | 'favorites' | 'settings';
 
 export interface SourceImage {
     base64: string;

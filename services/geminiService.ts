@@ -2,11 +2,12 @@
 
 import { GoogleGenAI } from "@google/genai";
 import type { Wallpaper, SourceImage } from '../types';
+import { getConfig } from '../config';
 
 const getAi = () => {
-    const apiKey = process.env.API_KEY;
+    const { apiKey } = getConfig();
     if (!apiKey) {
-        throw new Error("AI Service is not configured. The API_KEY environment variable is missing. Please configure it in your deployment settings.");
+        throw new Error("AI Service is not configured. The API_KEY is missing. Please add it in the Settings page.");
     }
     return new GoogleGenAI({ apiKey });
 };

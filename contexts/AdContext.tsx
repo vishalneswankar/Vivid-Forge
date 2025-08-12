@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useCallback, useRef, useState } from 'react';
-import { isGoogleAdSenseAvailable, GOOGLE_ADSENSE_INTERSTITIAL_AD_UNIT_ID } from '../config';
+import { isGoogleAdSenseAvailable, getConfig } from '../config';
 
 // Augment the window object for googletag
 declare global {
@@ -35,9 +35,10 @@ const AdOverlay = ({ show }: { show: boolean }) => {
 export const AdProvider = ({ children }: { children: React.ReactNode }) => {
     const interstitialSlotRef = useRef<any>(null);
     const onAdClosedCallbackRef = useRef<(() => void) | null>(null);
+    const listenersAttached = useRef(false);
     const [adState, setAdState] = useState<AdState>('idle');
+    const [isAdConfigured, setIsAdConfigured] = useState(isGoogleAdSenseAvailable());
     
-    // This effect handles the ad state transitions and cleanup.
     const handleAdClosed = useCallback(() => {
         setAdState('idle');
         if (onAdClosedCallbackRef.current) {
@@ -46,53 +47,62 @@ export const AdProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, []);
 
-    useEffect(() => {
-        if (!isGoogleAdSenseAvailable) {
+    const initAds = useCallback(() => {
+        const available = isGoogleAdSenseAvailable();
+        setIsAdConfigured(available);
+        
+        if (!available) {
             console.warn("Google AdSense is not configured.");
+            if(window.googletag && window.googletag.destroySlots) {
+                window.googletag.destroySlots();
+            }
             return;
         }
 
+        const { googleAdsenseInterstitialAdUnitId } = getConfig();
         window.googletag = window.googletag || { cmd: [] };
 
         window.googletag.cmd.push(() => {
+            if(window.googletag.destroySlots) {
+                window.googletag.destroySlots();
+            }
             const slot = window.googletag.defineOutOfPageSlot(
-                GOOGLE_ADSENSE_INTERSTITIAL_AD_UNIT_ID,
+                googleAdsenseInterstitialAdUnitId,
                 window.googletag.enums.OutOfPageFormat.INTERSTITIAL
             );
 
             if (slot) {
                 interstitialSlotRef.current = slot;
                 slot.addService(window.googletag.pubads());
-                console.log("Interstitial ad slot defined.");
+                console.log("Interstitial ad slot defined/re-defined.");
 
-                window.googletag.pubads().addEventListener('slotRenderEnded', (event: any) => {
-                    if (event.slot === interstitialSlotRef.current) {
-                        // If the slot is empty, it means no ad was served.
-                        // We should close the "loading" state and fire the callback.
-                        if (event.isEmpty) {
-                            console.log('Ad slot was empty. No ad to show.');
-                            // We use setAdState with a function to get the latest state
-                            // to avoid issues with stale state in the event listener closure.
-                            setAdState(currentState => {
-                                if (currentState === 'loading') {
-                                    handleAdClosed();
-                                    return 'idle'; 
-                                }
-                                return currentState;
-                            });
-                        } else {
-                           console.log('Ad slot rendered, ad should be visible.');
-                           setAdState('visible');
+                if (!listenersAttached.current) {
+                    window.googletag.pubads().addEventListener('slotRenderEnded', (event: any) => {
+                        if (event.slot === interstitialSlotRef.current) {
+                            if (event.isEmpty) {
+                                console.log('Ad slot was empty. No ad to show.');
+                                setAdState(currentState => {
+                                    if (currentState === 'loading') {
+                                        handleAdClosed();
+                                        return 'idle'; 
+                                    }
+                                    return currentState;
+                                });
+                            } else {
+                               console.log('Ad slot rendered, ad should be visible.');
+                               setAdState('visible');
+                            }
                         }
-                    }
-                });
+                    });
 
-                window.googletag.pubads().addEventListener('slotClosed', (event: any) => {
-                    if (event.slot === interstitialSlotRef.current) {
-                        console.log('Interstitial ad slot closed by user.');
-                        handleAdClosed();
-                    }
-                });
+                    window.googletag.pubads().addEventListener('slotClosed', (event: any) => {
+                        if (event.slot === interstitialSlotRef.current) {
+                            console.log('Interstitial ad slot closed by user.');
+                            handleAdClosed();
+                        }
+                    });
+                    listenersAttached.current = true;
+                }
 
             } else {
                 console.error("Failed to define interstitial ad slot.");
@@ -104,8 +114,14 @@ export const AdProvider = ({ children }: { children: React.ReactNode }) => {
 
     }, [handleAdClosed]);
 
+    useEffect(() => {
+        initAds();
+        window.addEventListener('config-updated', initAds);
+        return () => window.removeEventListener('config-updated', initAds);
+    }, [initAds]);
+
     const showInterstitialAd = useCallback((onAdClosed?: () => void) => {
-        if (!isGoogleAdSenseAvailable || !interstitialSlotRef.current) {
+        if (!isAdConfigured || !interstitialSlotRef.current) {
             console.log("Ad request skipped: AdSense not available or slot not defined.");
             onAdClosed?.(); // If ads are not available, just run the callback.
             return;
@@ -125,7 +141,7 @@ export const AdProvider = ({ children }: { children: React.ReactNode }) => {
                 handleAdClosed();
             }
         });
-    }, [handleAdClosed]);
+    }, [isAdConfigured, handleAdClosed]);
 
     const value = { showInterstitialAd };
 
